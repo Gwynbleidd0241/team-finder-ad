@@ -147,3 +147,5 @@ dmypy.json
 .ruff_cache/
 
 *.Identifier
+
+.DS_Store
