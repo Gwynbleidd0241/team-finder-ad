@@ -49,15 +49,49 @@ def logout_view(request):
 
 
 def users_list_view(request):
-    users_qs = User.objects.order_by("-id")
-    paginator = Paginator(users_qs, USERS_PER_PAGE)
+    queryset = User.objects.order_by("-id")
+    active_filter = request.GET.get("filter")
+
+    if request.user.is_authenticated and active_filter:
+        if active_filter == "favorite_authors":
+            favorite_ids = request.user.favorites.values_list("id", flat=True)
+            queryset = queryset.filter(owned_projects__id__in=favorite_ids).distinct()
+
+        elif active_filter == "participated_authors":
+            participated_ids = request.user.participated_projects.values_list(
+                "id", flat=True
+            )
+            queryset = queryset.filter(
+                owned_projects__id__in=participated_ids
+            ).distinct()
+
+        elif active_filter == "liked_my_projects":
+            my_project_ids = request.user.owned_projects.values_list("id", flat=True)
+            queryset = (
+                queryset.filter(favorites__id__in=my_project_ids)
+                .exclude(id=request.user.id)
+                .distinct()
+            )
+
+        elif active_filter == "my_project_participants":
+            my_project_ids = request.user.owned_projects.values_list("id", flat=True)
+            queryset = (
+                queryset.filter(participated_projects__id__in=my_project_ids)
+                .exclude(id=request.user.id)
+                .distinct()
+            )
+
+    paginator = Paginator(queryset, USERS_PER_PAGE)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
     return render(
         request,
         "users/participants.html",
-        {"participants": page_obj},
+        {
+            "participants": page_obj,
+            "active_filter": active_filter,
+        },
     )
 
 
