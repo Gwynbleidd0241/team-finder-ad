@@ -1,107 +1,127 @@
-# Первоначальная настройка проекта TeamFinder
+# TeamFinder (Вариант 1)
 
-## 1. Виртуальное окружение
+## Запуск проекта
 
-Перед началом работы необходимо создать и активировать виртуальное окружение Python.  
+### 1. Клонирование репозитория
 
+```bash
+git clone https://github.com/Gwynbleidd0241/team-finder-ad.git
+cd team-finder-ad
+```
 
-1. **Создайте виртуальное окружение (в папке проекта):**
-   ```bash
-   python3 -m venv venv
-   ```
+---
 
-   После этого появится папка `venv`, где будут храниться зависимости проекта.
+### 2. Виртуальное окружение
 
-2. **Активируйте окружение:**
+#### macOS / Linux
 
-    - **Windows (PowerShell):**
-      ```bash
-      venv\Scripts\Activate.ps1
-      ```
-    - **Windows (cmd):**
-      ```bash
-      venv\Scripts\activate
-      ```
-    - **Linux/Mac:**
-      ```bash
-      source venv/bin/activate
-      ```
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
 
-3. **Установите зависимости из `requirements.txt`:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+#### Windows (PowerShell)
 
-   После установки в окружении будут доступны все нужные библиотеки Django-проекта.
+```bash
+python -m venv venv
+venv\Scripts\Activate.ps1
+```
 
-## 2. Создание `.env`
+---
 
-Файл `.env` содержит конфиденциальные настройки проекта — ключ Django, параметры БД и другие переменные.  
+### 3. Установка зависимостей
 
-Особое внимание обратите на строчку `TASK_VERSION=`. 
-Добавьте число, которое соответствует вашему варианту задания. 
-Этот параметр определяет, какие шаблоны использовать для сайта (из папок `templates_var1`/`templates_var2`/`templates_var3`).
-Лишние две папки не из вашего варианта можно удалить.
+```bash
+pip install -r requirements.txt
+```
 
-В репозитории есть пример `.env_example`, который нужно скопировать и заполнить:
+---
+
+### 4. Настройка переменных окружения
+
+Создайте файл `.env` на основе примера:
 
 ```bash
 cp .env_example .env
 ```
 
-После этого откройте `.env` и укажите свои значения.  
+Пример содержимого `.env`:
 
-| Переменная            | Назначение                                                                                                                                                 |
-|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **DJANGO_SECRET_KEY** | Секретный ключ Django, используемый для подписи cookie и токенов. Можно сгенерировать при помощи `get_random_secret_key` из `django.core.management.utils` |
-| **DJANGO_DEBUG**      | Режим отладки. Установите `True` во время разработки.                                                                                                      |
-| **POSTGRES_DB**       | Имя базы данных PostgreSQL, которую будет использовать Django.                                                                                             |
-| **POSTGRES_USER**     | Имя пользователя PostgreSQL.                                                                                                                               |
-| **POSTGRES_PASSWORD** | Пароль пользователя PostgreSQL.                                                                                                                            |
-| **POSTGRES_HOST**     | Адрес сервера БД. В случае локальной разработки localhost.                                                                                                 |
-| **POSTGRES_PORT**     | Порт подключения к БД (по умолчанию `5432`).                                                                                                               |
-| **TASK_VERSION**      | Номер варианта вашего задания. Используется для определения набора HTML-шаблонов.                                                                          |
+```env
+DJANGO_SECRET_KEY=dev-secret-key
+DJANGO_DEBUG=True
+
+POSTGRES_DB=teamfinder
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+
+TASK_VERSION=1
+```
 
 ---
 
-## 3. Запуск PostgreSQL
-
-Для работы приложения **TeamFinder** используется база данных **PostgreSQL**.
-По условию задания база данных должна запускаться в контейнере Docker.
-
-В проекте уже есть пример файла `docker-compose.yml`. 
-Используйте готовый или измените под свои нужды, а дальше запускайте:
+### 5. Запуск базы данных (PostgreSQL)
 
 ```bash
 docker compose up -d
 ```
 
-`-d` значит `detach`, то есть контейнер продолжит работать в фоне. Чтобы его остановить, надо будет ввести
+Остановка контейнера:
 
 ```bash
 docker compose down
 ```
 
-Если возникает ошибка "permission denied while trying to connect to the Docker daemon socket", то может потребоваться добавить `sudo` перед командой.
+---
+
+### 6. Применение миграций
+
+```bash
+python3 manage.py makemigrations
+python3 manage.py migrate
+```
 
 ---
 
-После этого база данных будет доступна по адресу `localhost:5432`.  
-Нужно будет использовать эти же параметры в файле `.env`.
-
-> Если на компьютере уже развёрнут сервер БД на порте 5432, и вы не хотите создавать БД для этого проекта на этом сервере, целесообразнее будет изменить порт на нестандартный.
-> Нестандартный порт нужно будет поставить слева в паре портов в docker-compose (`"5433":"5432"`) и в .env.
-
-## 4. Запуск Django
-
-После заполнения `.env` и настройки базы данных можно запустить сервер разработки:
+### 7. Создание суперпользователя
 
 ```bash
-python manage.py runserver
+python3 manage.py createsuperuser
 ```
 
-Теперь проект доступен по адресу [http://localhost:8000](http://localhost:8000). 
-Если видите ракету с надписью "The install worked successfully! Congratulations!", то запуск прошёл успешно, Django работает!
-Осталось всего ничего: реализовать весь проект!
+---
 
-Если в процессе разработки способ развертывания приложения поменяется, обновите `readme.md` с пометкой ревьюеру, как запускать и проверять приложение.
+### 8. Создание тестовых данных
+
+```bash
+python3 manage.py seed_data
+```
+
+Будут созданы:
+- тестовые пользователи
+- проекты
+
+---
+
+### 9. Запуск сервера
+
+```bash
+python3 manage.py runserver
+```
+
+Открыть в браузере:
+
+```
+http://127.0.0.1:8000/
+```
+
+---
+
+## Тесты
+
+```bash
+python3 manage.py test users.tests.test_views
+python3 manage.py test projects.tests.test_views
+```
