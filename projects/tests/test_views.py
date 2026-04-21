@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -34,14 +36,14 @@ class ProjectViewsTests(TestCase):
 
     def test_project_list_page_available(self):
         response = self.client.get(reverse("projects:list"))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, "projects/project_list.html")
 
     def test_project_detail_page_available(self):
         response = self.client.get(
             reverse("projects:detail", kwargs={"project_id": self.project.id})
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, "projects/project-details.html")
 
     def test_create_project_sets_owner_and_participant(self):
@@ -55,7 +57,7 @@ class ProjectViewsTests(TestCase):
                 "status": Project.STATUS_OPEN,
             },
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
         created_project = Project.objects.get(name="New project")
         self.assertEqual(created_project.owner, self.owner)
@@ -68,7 +70,7 @@ class ProjectViewsTests(TestCase):
                 "projects:toggle_participate", kwargs={"project_id": self.project.id}
             )
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTrue(
             self.project.participants.filter(id=self.participant.id).exists()
         )
@@ -78,7 +80,7 @@ class ProjectViewsTests(TestCase):
         response = self.client.post(
             reverse("projects:complete_project", kwargs={"project_id": self.project.id})
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
         self.project.refresh_from_db()
         self.assertEqual(self.project.status, Project.STATUS_CLOSED)
@@ -88,5 +90,5 @@ class ProjectViewsTests(TestCase):
         response = self.client.post(
             reverse("projects:toggle_favorite", kwargs={"project_id": self.project.id})
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTrue(self.participant.favorites.filter(id=self.project.id).exists())
