@@ -1,12 +1,18 @@
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
+
+from utils import paginate_queryset
 
 from .forms import LoginForm, ProfileEditForm, RegisterForm, UserPasswordChangeForm
 from .models import User
 
 USERS_PER_PAGE = 12
+
+FILTER_FAVORITE_AUTHORS = "favorite_authors"
+FILTER_PARTICIPATED_AUTHORS = "participated_authors"
+FILTER_LIKED_MY_PROJECTS = "liked_my_projects"
+FILTER_MY_PROJECT_PARTICIPANTS = "my_project_participants"
 
 
 def register_view(request):
@@ -53,11 +59,11 @@ def users_list_view(request):
     active_filter = request.GET.get("filter")
 
     if request.user.is_authenticated and active_filter:
-        if active_filter == "favorite_authors":
+        if active_filter == FILTER_FAVORITE_AUTHORS:
             favorite_ids = request.user.favorites.values_list("id", flat=True)
             queryset = queryset.filter(owned_projects__id__in=favorite_ids).distinct()
 
-        elif active_filter == "participated_authors":
+        elif active_filter == FILTER_PARTICIPATED_AUTHORS:
             participated_ids = request.user.participated_projects.values_list(
                 "id", flat=True
             )
@@ -65,7 +71,7 @@ def users_list_view(request):
                 owned_projects__id__in=participated_ids
             ).distinct()
 
-        elif active_filter == "liked_my_projects":
+        elif active_filter == FILTER_LIKED_MY_PROJECTS:
             my_project_ids = request.user.owned_projects.values_list("id", flat=True)
             queryset = (
                 queryset.filter(favorites__id__in=my_project_ids)
@@ -73,7 +79,7 @@ def users_list_view(request):
                 .distinct()
             )
 
-        elif active_filter == "my_project_participants":
+        elif active_filter == FILTER_MY_PROJECT_PARTICIPANTS:
             my_project_ids = request.user.owned_projects.values_list("id", flat=True)
             queryset = (
                 queryset.filter(participated_projects__id__in=my_project_ids)
@@ -81,9 +87,7 @@ def users_list_view(request):
                 .distinct()
             )
 
-    paginator = Paginator(queryset, USERS_PER_PAGE)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate_queryset(request, queryset, USERS_PER_PAGE)
 
     return render(
         request,

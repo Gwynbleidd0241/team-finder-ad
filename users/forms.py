@@ -1,18 +1,12 @@
-import re
 from urllib.parse import urlparse
 
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.forms import PasswordChangeForm
 
+from utils import PHONE_PATTERN, normalize_phone_number
+
 from .models import User
-
-PHONE_PATTERN = re.compile(r"^(8\d{10}|\+7\d{10})$")
-
-
-def normalize_phone_number(raw_phone: str) -> str:
-    value = (raw_phone or "").strip()
-    return f"+7{value[-10:]}"
 
 
 class RegisterForm(forms.ModelForm):

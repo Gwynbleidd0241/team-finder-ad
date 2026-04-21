@@ -1,14 +1,11 @@
-import hashlib
-from io import BytesIO
-
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
     PermissionsMixin,
 )
-from django.core.files.base import ContentFile
 from django.db import models
-from PIL import Image, ImageDraw, ImageFont
+
+from utils import build_avatar_file
 
 
 class UserManager(BaseUserManager):
@@ -76,50 +73,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.name} {self.surname}"
 
-    def _pick_avatar_background(self):
-        palette = [
-            "#6B8E73",
-            "#7C90A0",
-            "#8D7B68",
-            "#7F6A93",
-            "#5F8A8B",
-            "#8A7E66",
-        ]
-        source = (self.email or self.name or "user").encode("utf-8")
-        color_index = int(hashlib.md5(source).hexdigest(), 16) % len(palette)
-        return palette[color_index]
-
-    def _build_avatar_file(self):
-        image_size = 128
-        avatar_image = Image.new(
-            "RGB",
-            (image_size, image_size),
-            self._pick_avatar_background(),
-        )
-        canvas = ImageDraw.Draw(avatar_image)
-
-        first_letter = (self.name[:1] if self.name else "U").upper()
-
-        try:
-            font = ImageFont.truetype("DejaVuSans-Bold.ttf", 72)
-        except OSError:
-            font = ImageFont.load_default()
-
-        text_box = canvas.textbbox((0, 0), first_letter, font=font)
-        text_width = text_box[2] - text_box[0]
-        text_height = text_box[3] - text_box[1]
-
-        text_x = (image_size - text_width) / 2
-        text_y = (image_size - text_height) / 2
-
-        canvas.text((text_x, text_y), first_letter, fill="white", font=font)
-
-        binary_stream = BytesIO()
-        avatar_image.save(binary_stream, format="PNG")
-        file_name = f"avatar_{self.email.replace('@', '_').replace('.', '_')}.png"
-        return ContentFile(binary_stream.getvalue(), name=file_name)
-
     def save(self, *args, **kwargs):
         if not self.avatar:
-            self.avatar = self._build_avatar_file()
+            self.avatar = build_avatar_file(self.name, self.email)
         super().save(*args, **kwargs)

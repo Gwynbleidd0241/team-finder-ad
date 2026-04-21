@@ -1,10 +1,11 @@
 from http import HTTPStatus
 
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from utils import paginate_queryset
 
 from .forms import ProjectForm
 from .models import Project
@@ -14,10 +15,7 @@ PROJECTS_PER_PAGE = 12
 
 def project_list_view(request):
     queryset = Project.objects.select_related("owner").order_by("-created_at")
-
-    paginator = Paginator(queryset, PROJECTS_PER_PAGE)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate_queryset(request, queryset, PROJECTS_PER_PAGE)
 
     return render(
         request,
@@ -27,17 +25,19 @@ def project_list_view(request):
         },
     )
 
+
 def project_detail_view(request, project_id):
     project = get_object_or_404(
         Project.objects.select_related("owner").prefetch_related("participants"),
         id=project_id,
-    ) 
+    )
 
     return render(
         request,
         "projects/project-details.html",
         {"project": project},
     )
+
 
 @require_POST
 @login_required
@@ -59,6 +59,7 @@ def toggle_participation_view(request, project_id):
         },
         status=HTTPStatus.OK,
     )
+
 
 @require_POST
 @login_required
@@ -88,6 +89,7 @@ def complete_project_view(request, project_id):
         status=HTTPStatus.OK,
     )
 
+
 @login_required
 def create_project_view(request):
     if request.method == "POST":
@@ -110,6 +112,7 @@ def create_project_view(request):
             "is_edit": False,
         },
     )
+
 
 @login_required
 def edit_project_view(request, project_id):
@@ -135,6 +138,7 @@ def edit_project_view(request, project_id):
         },
     )
 
+
 @require_POST
 @login_required
 def toggle_favorite_view(request, project_id):
@@ -159,15 +163,13 @@ def toggle_favorite_view(request, project_id):
 
 @login_required
 def favorite_projects_view(request):
-    projects = (
+    queryset = (
         request.user.favorites.select_related("owner")
         .prefetch_related("participants")
         .order_by("-created_at")
     )
 
-    paginator = Paginator(projects, PROJECTS_PER_PAGE)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginate_queryset(request, queryset, PROJECTS_PER_PAGE)
 
     return render(
         request,
